@@ -23,13 +23,13 @@ Build Instructions
 Running Instructions:
 ---------------------
 
-1. run executable jar:
+1. run executable jar, (optionally takes a Jetspeed spring filter key argument, defaults to 'portal.dbPageManager'):
 
 
     > java -jar target/jetspeed-script-1.0.jar
 
 
-2. configure jetspeed-script.properties template:
+2. configure jetspeed-script.properties template, (supports MySQL, Oracle, and PostgreSQL):
 
 
     org.apache.jetspeed.database.driver=com.mysql.jdbc.Driver
