@@ -11,6 +11,7 @@ import org.apache.jetspeed.components.factorybeans.ServletConfigFactoryBean;
 import org.apache.jetspeed.components.jndi.JetspeedTestJNDIComponent;
 import org.apache.jetspeed.engine.JetspeedEngine;
 import org.apache.jetspeed.engine.JetspeedEngineConstants;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
@@ -69,7 +70,7 @@ public class JetspeedContext {
         engine.start();
     }
 
-    public Map<String,Object> getComponents() {
+    public Map<String,Object> getComponents() throws Exception {
         Map<String,Object> components = new TreeMap<String,Object>(new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {
@@ -95,7 +96,14 @@ public class JetspeedContext {
                         }
                         shortComponentName = shortComponentName+1;
                     }
-                    components.put(shortComponentName, beanFactory.getSingleton(componentName));
+                    Object component = beanFactory.getSingleton(componentName);
+                    if (component instanceof FactoryBean) {
+                        FactoryBean factoryBean = (FactoryBean)component;
+                        if (factoryBean.isSingleton()) {
+                            component = factoryBean.getObject();
+                        }
+                    }
+                    components.put(shortComponentName, component);
                 }
             }
             applicationContext = applicationContext.getParent();
