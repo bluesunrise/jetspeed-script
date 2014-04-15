@@ -26,6 +26,7 @@
     <org.apache.portals.bridges.common.version>2.0</org.apache.portals.bridges.common.version>
     <portals.portlet2-api-spec.version>1.0</portals.portlet2-api-spec.version>
     <postgresql.version>9.3-1101-jdbc41</postgresql.version>
+    <rhino.version>1.7R4</rhino.version>
     <slf4j.version>1.5.6</slf4j.version>
     <tyrex.version>1.0.1</tyrex.version>
   </properties>
@@ -35,6 +36,11 @@
       <groupId>jline</groupId>
       <artifactId>jline</artifactId>
       <version>${jline.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mozilla</groupId>
+      <artifactId>rhino</artifactId>
+      <version>${rhino.version}</version>
     </dependency>
 
     <!-- J2 resources -->
@@ -252,8 +258,8 @@
         <version>2.5.1</version>
         <inherited>true</inherited>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.6</source>
+          <target>1.6</target>
         </configuration>
       </plugin>
       <plugin>

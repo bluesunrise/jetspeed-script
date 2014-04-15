@@ -14,7 +14,7 @@ Build Instructions
     > mvn install:install-file -Dfile=/home/rwatler/installs/oracle/ojdbc6-11.2.0.4.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=11.2.0.4 -Dpackaging=jar
 
 
-3. run standard Maven build:
+3. run standard Maven build, (requires JDK 1.6 or 1.7):
 
 
     > mvn clean install
@@ -51,29 +51,36 @@ Running Instructions:
     true
 
 
-    jetspeed> for (role in Iterator(RoleManagerImpl.getRoleNames(""))) println(role)
+    jetspeed> for (role in Iterator(RoleManager.getRoleNames(""))) println(role)
     admin
     dev
     devmgr
     ...
 
-    jetspeed> for (user in Iterator(UserManagerImpl.getUsers(""))) println(user.name)
+    jetspeed> for (user in Iterator(UserManager.getUsers(""))) println(user.name)
     admin
     devmgr
     guest
     ...
 
+5. Scriptable utilities are available to facilitate Java List and Map usage:
 
-5. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.
+    jetspeed> ScriptUtils.javaToJS(UserManager.getUsers(''), this).forEach(function(user){println(user.name)})
+    guest
+
+    jetspeed> ScriptUtils.javaToJS(UserManager.getUser('guest').getInfoMap(), this)['user.name.family']
+    Guest
+
+6. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.
 
 
-6. run scripts without entering interactive mode 
+7. run scripts without entering interactive mode 
 
 
     > java -jar target/jetspeed-script-1.0.jar < roles.js
 
 
-7. enter 'exit' or 'quit' at 'jetspeed>' prompt to exit:
+8. enter 'exit' or 'quit' at 'jetspeed>' prompt to exit:
 
 
     jetspeed> exit

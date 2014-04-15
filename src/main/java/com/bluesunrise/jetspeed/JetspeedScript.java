@@ -4,14 +4,20 @@ import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.StringsCompleter;
 import org.apache.commons.io.IOUtils;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Function;
+import org.mozilla.javascript.ImporterTopLevel;
+import org.mozilla.javascript.RhinoException;
+import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.ScriptableObject;
+import org.mozilla.javascript.Undefined;
+import org.mozilla.javascript.WrappedException;
+import org.ringojs.util.ScriptUtils;
+import org.ringojs.wrappers.ScriptableList;
+import org.ringojs.wrappers.ScriptableMap;
+import org.ringojs.wrappers.ScriptableWrapper;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
-import javax.script.Bindings;
-import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-import javax.script.SimpleScriptContext;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -81,49 +87,61 @@ public class JetspeedScript {
             }
 
             if (!exit) {
-                ScriptEngineManager factory = new ScriptEngineManager();
-                ScriptEngine engine = factory.getEngineByName("JavaScript");
-                ScriptContext context = new SimpleScriptContext();
-                Bindings scope = context.getBindings(ScriptContext.ENGINE_SCOPE);
+                Context scriptContext = Context.enter();
+                try {
+                    scriptContext.setLanguageVersion(Context.VERSION_1_8);
+                    Scriptable scriptScope = new Global(scriptContext);
+                    scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptUtils.class.getName()+")", "main", 1, null);
+                    scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptableList.class.getName()+")", "main", 1, null);
+                    scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptableMap.class.getName()+")", "main", 1, null);
+                    scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptableWrapper.class.getName()+")", "main", 1, null);
 
-                jetspeedContext = new JetspeedContext(springFilter, properties);
-                jetspeedContext.start();
-                Map<String,Object> jetspeedComponents = jetspeedContext.getComponents();
-                scope.putAll(jetspeedComponents);
+                    jetspeedContext = new JetspeedContext(springFilter, properties);
+                    jetspeedContext.start();
+                    Map<String,Object> jetspeedComponents = jetspeedContext.getComponents();
+                    for (Map.Entry<String,Object> jetspeedComponentEntry : jetspeedComponents.entrySet()) {
+                        ScriptableObject.putProperty(scriptScope, jetspeedComponentEntry.getKey(), Context.javaToJS(jetspeedComponentEntry.getValue(), scriptScope));
+                    }
 
-                CONSOLE.addCompleter(new JavascriptSymbolCompleter(jetspeedComponents.keySet()));
-                CONSOLE.addCompleter(new JavascriptSymbolCompleter(IOUtils.readLines(JetspeedScript.class.getResourceAsStream("/javascript-keywords.txt"))));
-                CONSOLE.addCompleter(new StringsCompleter(Arrays.asList(new String[]{"exit", "quit"})));
-                CONSOLE.setPrompt("jetspeed> ");
-                String bufferedLine = "";
-                String line = "";
-                while (!exit && (line = CONSOLE.readLine()) != null) {
-                    if (line.endsWith("\\")) {
-                        bufferedLine = bufferedLine+line.substring(0, line.length()-1);
-                        CONSOLE.setPrompt("> ");
-                    } else {
-                        bufferedLine = (bufferedLine+line).trim();
-                        if (bufferedLine.equals("exit") || bufferedLine.equals("quit")) {
-                            exit = true;
+                    CONSOLE.addCompleter(new JavascriptSymbolCompleter(jetspeedComponents.keySet()));
+                    CONSOLE.addCompleter(new JavascriptSymbolCompleter(IOUtils.readLines(JetspeedScript.class.getResourceAsStream("/javascript-keywords.txt"))));
+                    CONSOLE.addCompleter(new StringsCompleter(Arrays.asList(new String[]{"exit", "quit"})));
+                    CONSOLE.setPrompt("jetspeed> ");
+                    String bufferedLine = "";
+                    String line = "";
+                    while (!exit && (line = CONSOLE.readLine()) != null) {
+                        if (line.endsWith("\\")) {
+                            bufferedLine = bufferedLine+line.substring(0, line.length()-1);
+                            CONSOLE.setPrompt("> ");
                         } else {
-                            try {
-                                engine.eval(bufferedLine, context);
-                            } catch (ScriptException se) {
-                                String message = se.getMessage();
-                                if (message.contains(": ")) {
-                                    message = message.substring(message.indexOf(": ")+1).trim();
+                            bufferedLine = (bufferedLine+line).trim();
+                            if (bufferedLine.equals("exit") || bufferedLine.equals("quit")) {
+                                exit = true;
+                            } else {
+                                try {
+                                    Object result = scriptContext.evaluateString(scriptScope, bufferedLine, "console", 1, null);
+                                    if ((result != null) && !(result instanceof Undefined)) {
+                                        CONSOLE.println(scriptContext.toString(result));
+                                    }
+                                } catch (WrappedException we) {
+                                    CONSOLE.println(we.getWrappedException().toString());
+                                    we.getWrappedException().printStackTrace();
+                                } catch (RhinoException re) {
+                                    String message = re.getMessage();
+                                    if (message.endsWith(" (console#1)")) {
+                                        message=message.substring(0, message.length()-12);
+                                    }
+                                    CONSOLE.println(message);
                                 }
-                                if (message.contains(" (<Unknown source>")) {
-                                    message = message.substring(0, message.indexOf(" (<Unknown source>")).trim();
-                                }
-                                CONSOLE.println(message);
+                                bufferedLine = "";
+                                CONSOLE.setPrompt("jetspeed> ");
                             }
-                            bufferedLine = "";
-                            CONSOLE.setPrompt("jetspeed> ");
                         }
                     }
+                    CONSOLE.shutdown();
+                } finally {
+                    Context.exit();
                 }
-                CONSOLE.shutdown();
             }
         } catch (Exception e) {
             System.out.println();
@@ -147,7 +165,6 @@ public class JetspeedScript {
                 jetspeedContext.stop();
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -158,5 +175,35 @@ public class JetspeedScript {
             rootLogger.removeHandler(handlers[i]);
         }
         SLF4JBridgeHandler.install();
+    }
+
+    public static class Global extends ImporterTopLevel {
+
+        public Global(Context scriptContext) {
+            super(scriptContext);
+            this.defineFunctionProperties(new String[]{"print", "println"}, getClass(), ScriptableObject.DONTENUM);
+        }
+
+        public static void print(Context cx, Scriptable thisObj, Object[] args, Function funObj) {
+            boolean first = true;
+            for (Object arg : args) {
+                String argString = (first ? "" : " ")+cx.toString(arg);
+                try {
+                    CONSOLE.print(argString);
+                } catch (Exception e) {
+                    System.out.print(argString);
+                }
+                first = false;
+            }
+        }
+
+        public static void println(Context cx, Scriptable thisObj, Object[] args, Function funObj) {
+            print(cx, thisObj, args, funObj);
+            try {
+                CONSOLE.println();
+            } catch (Exception e) {
+                System.out.println();
+            }
+        }
     }
 }

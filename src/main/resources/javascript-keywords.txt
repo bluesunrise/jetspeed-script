@@ -17,6 +17,7 @@ Intl
 Intl.Collator
 Intl.DateTimeFormat
 Intl.NumberFormat
+Iterator
 JSON
 Math
 NaN
@@ -26,6 +27,10 @@ ParallelArray
 RangeError
 ReferenceError
 RegExp
+ScriptableList
+ScriptableMap
+ScriptableWrapper
+ScriptUtils
 StopIteration
 String
 Symbol
@@ -55,6 +60,8 @@ for
 function
 if
 import
+importClass
+importPackage
 in
 instanceof
 isFinite
