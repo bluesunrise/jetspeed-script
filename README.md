@@ -63,12 +63,12 @@ Running Instructions:
     guest
     ...
 
-5. Scriptable utilities are available to facilitate Java List and Map usage:
+5. utilities are available to facilitate Java List and Map usage:
 
-    jetspeed> ScriptUtils.javaToJS(UserManager.getUsers(''), this).forEach(function(user){println(user.name)})
+    jetspeed> javaToJS(UserManager.getUsers('')).forEach(function(user){println(user.name)})
     guest
 
-    jetspeed> ScriptUtils.javaToJS(UserManager.getUser('guest').getInfoMap(), this)['user.name.family']
+    jetspeed> javaToJS(UserManager.getUser('guest').getInfoMap())['user.name.family']
     Guest
 
 6. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.

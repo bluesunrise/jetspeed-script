@@ -181,7 +181,7 @@ public class JetspeedScript {
 
         public Global(Context scriptContext) {
             super(scriptContext);
-            this.defineFunctionProperties(new String[]{"print", "println"}, getClass(), ScriptableObject.DONTENUM);
+            this.defineFunctionProperties(new String[]{"print", "println", "javaToJS", "jsToJava"}, getClass(), ScriptableObject.DONTENUM);
         }
 
         public static void print(Context cx, Scriptable thisObj, Object[] args, Function funObj) {
@@ -204,6 +204,20 @@ public class JetspeedScript {
             } catch (Exception e) {
                 System.out.println();
             }
+        }
+
+        public static Object javaToJS(Context cx, Scriptable thisObj, Object[] args, Function funObj) {
+            if (args.length == 1) {
+                return ScriptUtils.javaToJS(ScriptUtils.jsToJava(args[0]), thisObj);
+            }
+            throw Context.reportRuntimeError("javaToJs() requires a single java object argument.");
+        }
+
+        public static Object jsToJava(Context cx, Scriptable thisObj, Object[] args, Function funObj) {
+            if (args.length == 1) {
+                return ScriptUtils.jsToJava(args[0]);
+            }
+            throw Context.reportRuntimeError("jsToJava() requires a single javascript object argument.");
         }
     }
 }
