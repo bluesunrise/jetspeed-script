@@ -4,6 +4,7 @@ import jline.TerminalFactory;
 import jline.console.ConsoleReader;
 import jline.console.completer.StringsCompleter;
 import org.apache.commons.io.IOUtils;
+import org.apache.jetspeed.security.JSSubject;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.ImporterTopLevel;
@@ -18,10 +19,12 @@ import org.ringojs.wrappers.ScriptableMap;
 import org.ringojs.wrappers.ScriptableWrapper;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import javax.security.auth.Subject;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
@@ -43,6 +46,8 @@ public class JetspeedScript {
         }
     }
     public static JetspeedContext jetspeedContext;
+    public static String jetspeedUserName;
+    public static Subject jetspeedUserSubject;
 
     public static void main(String[] args) {
 
@@ -58,8 +63,15 @@ public class JetspeedScript {
 
         boolean exit = false;
         String springFilter = "portal.dbPageManager";
-        if (args.length > 0) {
-            springFilter = args[1];
+        for (int i = 0, limit = args.length; (i < limit); i++) {
+            String arg = args[i];
+            if (arg.startsWith("-jetspeedUserName=")) {
+                jetspeedUserName = arg.substring(18);
+            } else if (arg.equals("-jetspeedUserName") && (i+1 < limit)) {
+                jetspeedUserName = args[++i];
+            } else if (!arg.startsWith("-")) {
+                springFilter = arg;
+            }
         }
 
         try {
@@ -87,10 +99,10 @@ public class JetspeedScript {
             }
 
             if (!exit) {
-                Context scriptContext = Context.enter();
+                final Context scriptContext = Context.enter();
                 try {
                     scriptContext.setLanguageVersion(Context.VERSION_1_8);
-                    Scriptable scriptScope = new Global(scriptContext);
+                    final Scriptable scriptScope = new Global(scriptContext);
                     scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptUtils.class.getName()+")", "main", 1, null);
                     scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptableList.class.getName()+")", "main", 1, null);
                     scriptContext.evaluateString(scriptScope, "importClass(Packages."+ScriptableMap.class.getName()+")", "main", 1, null);
@@ -119,7 +131,30 @@ public class JetspeedScript {
                                 exit = true;
                             } else {
                                 try {
-                                    Object result = scriptContext.evaluateString(scriptScope, bufferedLine, "console", 1, null);
+                                    Object result = null;
+                                    final String evalLine = bufferedLine;
+                                    if (jetspeedUserName != null) {
+                                        if (jetspeedUserSubject == null) {
+                                            jetspeedUserSubject = jetspeedContext.getUserSubject(jetspeedUserName);
+                                        }
+                                        if (jetspeedUserSubject != null) {
+                                            result = JSSubject.doAsPrivileged(jetspeedUserSubject, new PrivilegedAction() {
+                                                @Override
+                                                public Object run() {
+                                                    try {
+                                                        return scriptContext.evaluateString(scriptScope, evalLine, "console", 1, null);
+                                                    } finally {
+                                                        JSSubject.clearSubject();
+                                                    }
+                                                }
+                                            }, null);
+                                        } else {
+                                            jetspeedUserName = null;
+                                        }
+                                    }
+                                    if (jetspeedUserName == null) {
+                                        result = scriptContext.evaluateString(scriptScope, evalLine, "console", 1, null);
+                                    }
                                     if ((result != null) && !(result instanceof Undefined)) {
                                         CONSOLE.println(scriptContext.toString(result));
                                     }
@@ -181,7 +216,8 @@ public class JetspeedScript {
 
         public Global(Context scriptContext) {
             super(scriptContext);
-            this.defineFunctionProperties(new String[]{"print", "println", "javaToJS", "jsToJava"}, getClass(), ScriptableObject.DONTENUM);
+            defineFunctionProperties(new String[]{"print", "println", "javaToJS", "jsToJava"}, getClass(), ScriptableObject.DONTENUM);
+            defineProperty("jetspeedUserName", getClass(), EMPTY);
         }
 
         public static void print(Context cx, Scriptable thisObj, Object[] args, Function funObj) {
@@ -218,6 +254,15 @@ public class JetspeedScript {
                 return ScriptUtils.jsToJava(args[0]);
             }
             throw Context.reportRuntimeError("jsToJava() requires a single javascript object argument.");
+        }
+
+        public static String getJetspeedUserName(Scriptable thisObj) {
+            return jetspeedUserName;
+        }
+
+        public static void setJetspeedUserName(Scriptable thisObj, String userName) {
+            jetspeedUserName = userName;
+            jetspeedUserSubject = null;
         }
     }
 }

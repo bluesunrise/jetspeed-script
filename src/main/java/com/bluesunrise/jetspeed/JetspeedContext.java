@@ -5,17 +5,23 @@ import org.apache.commons.configuration.ConfigurationUtils;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
 import org.apache.jetspeed.Jetspeed;
+import org.apache.jetspeed.components.ComponentManager;
 import org.apache.jetspeed.components.JetspeedBeanDefinitionFilter;
 import org.apache.jetspeed.components.SpringComponentManager;
 import org.apache.jetspeed.components.factorybeans.ServletConfigFactoryBean;
 import org.apache.jetspeed.components.jndi.JetspeedTestJNDIComponent;
 import org.apache.jetspeed.engine.JetspeedEngine;
 import org.apache.jetspeed.engine.JetspeedEngineConstants;
+import org.apache.jetspeed.security.User;
+import org.apache.jetspeed.security.UserManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.AbstractApplicationContext;
 
+import javax.security.auth.Subject;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import java.io.File;
@@ -30,6 +36,8 @@ import java.util.TreeMap;
  * Created by rwatler on 4/11/14.
  */
 public class JetspeedContext {
+
+    private static final Logger log = LoggerFactory.getLogger(JetspeedContext.class);
 
     public static final String DATABASE_URL_PROP_NAME = "org.apache.jetspeed.database.url";
     public static final String DATABASE_DRIVER_PROP_NAME = "org.apache.jetspeed.database.driver";
@@ -109,6 +117,20 @@ public class JetspeedContext {
             applicationContext = applicationContext.getParent();
         } while (applicationContext != null);
         return components;
+    }
+
+    public Subject getUserSubject(String userName) {
+        try {
+            ComponentManager cm = engine.getComponentManager();
+            UserManager userManager = (UserManager)cm.getComponent(UserManager.class.getName());
+            if (userManager != null) {
+                User user = userManager.getUser(userName);
+                return userManager.getSubject(user);
+            }
+        } catch (Exception e) {
+            log.error("Unable to lookup user: "+userName+", "+e);
+        }
+        return null;
     }
 
     public void stop() throws Exception {

@@ -66,6 +66,9 @@ in
 instanceof
 isFinite
 isNaN
+javaToJS
+jetspeedUserName
+jsToJava
 label
 let
 new

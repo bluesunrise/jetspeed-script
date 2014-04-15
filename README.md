@@ -6,6 +6,7 @@ Jetspeed API Scripting Tool
 
 Build Instructions
 ------------------
+
 1. download Oracle database driver: ojdbc6-11.2.0.4.jar
 
 2. install into local Maven repo:
@@ -71,16 +72,25 @@ Running Instructions:
     jetspeed> javaToJS(UserManager.getUser('guest').getInfoMap())['user.name.family']
     Guest
 
-6. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.
+6. a Jetspeed security user/subject can be set using a global property: 'jetspeedUserName'. This can
+also be set using the -jetspeedUserName argument:
+
+    > java -jar target/jetspeed-script-1.0.jar -jetspeedUserName=guest
+    jetspeed> jetspeedUserName
+    guest
+    jetspeed> jetspeedUserName='admin'
+    admin
+
+7. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.
 
 
-7. run scripts without entering interactive mode 
+8. run scripts without entering interactive mode 
 
 
     > java -jar target/jetspeed-script-1.0.jar < roles.js
 
 
-8. enter 'exit' or 'quit' at 'jetspeed>' prompt to exit:
+9. enter 'exit' or 'quit' at 'jetspeed>' prompt to exit:
 
 
     jetspeed> exit

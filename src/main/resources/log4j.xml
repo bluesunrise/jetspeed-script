@@ -5,8 +5,12 @@
 
   <appender name="console" class="com.bluesunrise.jetspeed.JetspeedScriptLoggingAppender"/> 
 
+  <logger name="org.apache.jetspeed.util.ServletRequestCleanupService">
+    <level value="fatal"/> 
+  </logger>
+
   <root> 
-    <priority value ="error"/> 
+    <priority value="error"/> 
     <appender-ref ref="console"/> 
   </root>
   
