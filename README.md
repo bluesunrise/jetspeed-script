@@ -91,15 +91,27 @@ also be set using the -jetspeedUserName argument:
     admin
     ```
 
-7. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.
+7. Example of adding roles to a user
 
-8. run scripts without entering interactive mode:
+     ```sh
+    jetspeed> RoleManager.addRoleToUser('tomcat', 'dev')
+    jetspeed> javaToJS(RoleManager.getRolesForUser('tomcat')).forEach(function(role){println(role.name)})
+    dev
+    jetspeed> RoleManager.addRoleToUser('tomcat', 'devmgr')
+    jetspeed> javaToJS(RoleManager.getRolesForUser('tomcat')).forEach(function(role){println(role.name)})
+    dev
+    devMgr
+    ```
+
+8. bash-like command history available using up/down arrows and javascript symbol completion available using the Tab key.
+
+9. run scripts without entering interactive mode:
 
     ```sh
     > java -jar target/jetspeed-script-1.0.jar < roles.js
     ```
 
-9. enter 'exit' or 'quit' at 'jetspeed>' prompt to exit:
+10. enter 'exit' or 'quit' at 'jetspeed>' prompt to exit:
 
     ```sh
     jetspeed> exit
