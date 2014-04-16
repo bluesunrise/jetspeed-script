@@ -4,8 +4,8 @@ jetspeed-script
 Jetspeed API Scripting Tool
 ============================
 
-Build Instructions
-------------------
+Build Instructions:
+-------------------
 
 1. download Oracle database driver: ojdbc6-11.2.0.4.jar
 
@@ -116,3 +116,8 @@ also be set using the -jetspeedUserName argument:
     ```sh
     jetspeed> exit
     ```
+
+Project To Do:
+--------------
+
+1. implement configuration option for PSML file path.
